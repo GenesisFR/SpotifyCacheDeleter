@@ -31,14 +31,16 @@ namespace SpotifyDeleteCache
 
         private void DeleteCacheDirectories()
         {
-            try
+            foreach (string directory in _cacheDirectoriesToDelete)
             {
-                foreach (string directory in _cacheDirectoriesToDelete)
+                try
+                {
                     Directory.Delete(directory, true);
-            }
-            catch (Exception)
-            {
-                // Nothing to do here
+                }
+                catch (Exception)
+                {
+                    // Nothing to do here
+                }
             }
         }
 
