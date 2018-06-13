@@ -8,7 +8,7 @@ namespace SpotifyDeleteCache
 {
     public partial class SpotifyDeleteCacheForm : Form
     {
-        private bool _isRefresh; // used to avoid showing more than one error message when clicking on the Refresh button
+        private bool _hideWarnings; // used to avoid showing too many warnings
         private string _spotifyBrowserCacheLocation;
         private string _spotifyDataCacheLocation;
         private string[] _cacheFilesToDelete;
@@ -23,12 +23,13 @@ namespace SpotifyDeleteCache
             _spotifyBrowserCacheLocation = Path.Combine(localAppData, @"Spotify\Browser\Cache");
             _spotifyDataCacheLocation    = Path.Combine(localAppData, @"Spotify\Data");
 
-            _cacheFilesToDelete       = new string[] { };
+            _cacheFilesToDelete = new string[] { };
             _cacheDirectoriesToDelete = new string[] { };
         }
 
         private void SpotifyDeleteCacheForm_Load(object sender, EventArgs e)
         {
+            pictureBoxKappa.Visible = Environment.GetCommandLineArgs().Length > 1 && Environment.GetCommandLineArgs()[1] == "-kappa";
             buttonRefresh.PerformClick();
         }
 
@@ -203,16 +204,16 @@ namespace SpotifyDeleteCache
 
             ComputeDeletedCacheSize();
 
-            if ((!Directory.Exists(_spotifyBrowserCacheLocation) || !Directory.Exists(_spotifyBrowserCacheLocation)) && !_isRefresh)
+            if ((!Directory.Exists(_spotifyBrowserCacheLocation) || !Directory.Exists(_spotifyBrowserCacheLocation)) && !_hideWarnings)
                 MessageBox.Show("The Spofify cache folder no longer exists!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         // Event handlers
         private void DateTimePickerDirectoryAge_ValueChanged(object sender, EventArgs e)
         {
-            _isRefresh = true;
+            _hideWarnings = true;
             UpdateCacheSize(true);
-            _isRefresh = false;
+            _hideWarnings = false;
         }
 
         private void ButtonOpenBrowserCacheFolder_Click(object sender, EventArgs e)
@@ -246,14 +247,14 @@ namespace SpotifyDeleteCache
 
         private void ButtonRefresh_Click(object sender, EventArgs e)
         {
-            _isRefresh = true;
+            _hideWarnings = true;
 
             if (FindSpotifyCacheLocation())
                 UpdateCacheSize(true);
             else
                 MessageBox.Show("The Spofify cache folder wasn't found!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
-            _isRefresh = false;
+            _hideWarnings = false;
         }
 
         private void ButtonDeleteCache_Click(object sender, EventArgs e)
@@ -267,7 +268,7 @@ namespace SpotifyDeleteCache
 
             MessageBox.Show(text, "Success", MessageBoxButtons.OK, icon);
 
-            if ((!Directory.Exists(_spotifyBrowserCacheLocation) || !Directory.Exists(_spotifyBrowserCacheLocation)) && !_isRefresh)
+            if ((!Directory.Exists(_spotifyBrowserCacheLocation) || !Directory.Exists(_spotifyBrowserCacheLocation)) && !_hideWarnings)
                 MessageBox.Show("The Spofify cache folder no longer exists!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
