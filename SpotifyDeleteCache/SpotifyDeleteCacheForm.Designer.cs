@@ -209,7 +209,7 @@
             this.MaximizeBox = false;
             this.Name = "SpotifyDeleteCacheForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "SpotifyDeleteCache v1.02";
+            this.Text = "SpotifyDeleteCache v1.03";
             this.Load += new System.EventHandler(this.SpotifyDeleteCacheForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxKappa)).EndInit();
             this.ResumeLayout(false);
