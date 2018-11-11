@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SpotifyDeleteCache
@@ -35,15 +36,25 @@ namespace SpotifyDeleteCache
 
         private void ComputeTotalCacheSize()
         {
-            long totalCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation) + GetDirectorySize(_spotifyDataCacheLocation);
-            labelTotalCacheSize.Text = $"Total cache size: { ReadableBytes(totalCacheSize) }";
+            Task.Factory.StartNew(() =>
+            {
+                long totalCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation) + GetDirectorySize(_spotifyDataCacheLocation);
+
+                labelTotalCacheSize.Invoke(new Action(() =>
+                    labelTotalCacheSize.Text = $"Total cache size: { ReadableBytes(totalCacheSize) }"));
+            });
         }
 
         private void ComputeDeletedCacheSize()
         {
-            long deletedCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation, false) +
-                GetDirectorySize(_spotifyDataCacheLocation, false);
-            labelDeletedCacheSize.Text = $"Deleted cache size: { ReadableBytes(deletedCacheSize) }";
+            Task.Factory.StartNew(() =>
+            {
+                long deletedCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation, false) +
+                    GetDirectorySize(_spotifyDataCacheLocation, false);
+
+                labelDeletedCacheSize.Invoke(new Action(() =>
+                    labelDeletedCacheSize.Text = $"Deleted cache size: { ReadableBytes(deletedCacheSize) }"));
+            });
         }
 
         private bool DeleteCacheDirectories()
@@ -146,20 +157,23 @@ namespace SpotifyDeleteCache
         {
             string[] oldCacheFiles = new string[] { };
 
-            try
+            Task.Factory.StartNew(() =>
             {
-                // Add browser cache files, if present
-                if (Directory.Exists(_spotifyBrowserCacheLocation))
+                try
                 {
-                    oldCacheFiles = Directory.GetFiles(_spotifyBrowserCacheLocation)
-                        .Where(file => new FileInfo(file).LastWriteTime < dateTimePickerDirectoryAge.Value)
-                        .Select(file => file).ToArray();
+                    // Add browser cache files, if present
+                    if (Directory.Exists(_spotifyBrowserCacheLocation))
+                    {
+                        oldCacheFiles = Directory.GetFiles(_spotifyBrowserCacheLocation)
+                            .Where(file => new FileInfo(file).LastWriteTime < dateTimePickerDirectoryAge.Value)
+                            .Select(file => file).ToArray();
+                    }
                 }
-            }
-            catch
-            {
-                // Nothing to do here
-            }
+                catch
+                {
+                    // Nothing to do here
+                }
+            }).Wait();
 
             return oldCacheFiles;
         }
@@ -168,20 +182,23 @@ namespace SpotifyDeleteCache
         {
             string[] oldCacheDirectories = new string[] { };
 
-            try
+            Task.Factory.StartNew(() =>
             {
-                // Add data cache directories, if present
-                if (Directory.Exists(_spotifyDataCacheLocation))
+                try
                 {
-                    oldCacheDirectories = Directory.GetDirectories(_spotifyDataCacheLocation)
-                        .Where(directory => new DirectoryInfo(directory).LastWriteTime < dateTimePickerDirectoryAge.Value)
-                        .Select(directory => directory).ToArray();
+                    // Add data cache directories, if present
+                    if (Directory.Exists(_spotifyDataCacheLocation))
+                    {
+                        oldCacheDirectories = Directory.GetDirectories(_spotifyDataCacheLocation)
+                            .Where(directory => new DirectoryInfo(directory).LastWriteTime < dateTimePickerDirectoryAge.Value)
+                            .Select(directory => directory).ToArray();
+                    }
                 }
-            }
-            catch
-            {
-                // Nothing to do here
-            }
+                catch
+                {
+                    // Nothing to do here
+                }
+            }).Wait();
 
             return oldCacheDirectories;
         }
@@ -259,7 +276,13 @@ namespace SpotifyDeleteCache
 
         private void ButtonDeleteCache_Click(object sender, EventArgs e)
         {
-            bool areDirectoriesDeleted = DeleteCacheDirectories();
+            bool areDirectoriesDeleted = false;
+
+            Task.Factory.StartNew(() =>
+            {
+                areDirectoriesDeleted = DeleteCacheDirectories();
+            }).Wait();
+
             UpdateCacheSize();
 
             string text = areDirectoriesDeleted ? "The Spofify cache has been deleted!" :
