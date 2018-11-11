@@ -38,7 +38,8 @@ namespace SpotifyDeleteCache
         {
             Task.Factory.StartNew(() =>
             {
-                long totalCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation) + GetDirectorySize(_spotifyDataCacheLocation);
+                long totalCacheSize = GetEntireDirectorySize(_spotifyBrowserCacheLocation) +
+                    GetEntireDirectorySize(_spotifyDataCacheLocation);
 
                 labelTotalCacheSize.Invoke(new Action(() =>
                     labelTotalCacheSize.Text = $"Total cache size: { ReadableBytes(totalCacheSize) }"));
@@ -49,8 +50,8 @@ namespace SpotifyDeleteCache
         {
             Task.Factory.StartNew(() =>
             {
-                long deletedCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation, false) +
-                    GetDirectorySize(_spotifyDataCacheLocation, false);
+                long deletedCacheSize = GetPartialDirectorySize(_spotifyBrowserCacheLocation) +
+                    GetPartialDirectorySize(_spotifyDataCacheLocation);
 
                 labelDeletedCacheSize.Invoke(new Action(() =>
                     labelDeletedCacheSize.Text = $"Deleted cache size: { ReadableBytes(deletedCacheSize) }"));
@@ -112,32 +113,36 @@ namespace SpotifyDeleteCache
             return spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
         }
 
-        private long GetDirectorySize(string path, bool computeTotalSize = true)
+        private long GetEntireDirectorySize(string path)
         {
             long directorySize = 0L;
 
-            // Compute size of all files in that directory
-            if (computeTotalSize)
+            try
             {
-                try
+                // Add length of all files to compute directory size
+                if (Directory.Exists(path))
                 {
-                    // Add length of all files to compute directory size
-                    if (Directory.Exists(path))
-                    {
-                        string[] filenames = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                    string[] filenames = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
 
-                        foreach (string fileName in filenames)
-                            directorySize += new FileInfo(fileName).Length;
-                    }
-                }
-                catch
-                {
-                    // Nothing to do here
+                    foreach (string fileName in filenames)
+                        directorySize += new FileInfo(fileName).Length;
                 }
             }
-            // Only compute size of files to delete 
-            else
+            catch
             {
+                // Nothing to do here
+            }
+
+            return directorySize;
+        }
+
+        private long GetPartialDirectorySize(string path)
+        {
+            long directorySize = 0L;
+
+            try
+            {
+                // Only compute size of files to delete
                 if (path == _spotifyBrowserCacheLocation)
                 {
                     foreach (string fileName in _cacheFilesToDelete)
@@ -146,8 +151,12 @@ namespace SpotifyDeleteCache
                 else
                 {
                     foreach (string directory in _cacheDirectoriesToDelete)
-                        directorySize += GetDirectorySize(directory);
+                        directorySize += GetEntireDirectorySize(directory);
                 }
+            }
+            catch
+            {
+                // Nothing to do here
             }
 
             return directorySize;
