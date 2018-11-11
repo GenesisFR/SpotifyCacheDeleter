@@ -19,9 +19,9 @@ namespace SpotifyDeleteCache
             InitializeComponent();
 
             // Get cache folders location
-            string localAppData          = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             _spotifyBrowserCacheLocation = Path.Combine(localAppData, @"Spotify\Browser\Cache");
-            _spotifyDataCacheLocation    = Path.Combine(localAppData, @"Spotify\Data");
+            _spotifyDataCacheLocation = Path.Combine(localAppData, @"Spotify\Data");
 
             _cacheFilesToDelete = new string[] { };
             _cacheDirectoriesToDelete = new string[] { };
@@ -41,7 +41,7 @@ namespace SpotifyDeleteCache
 
         private void ComputeDeletedCacheSize()
         {
-            long deletedCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation, false) + 
+            long deletedCacheSize = GetDirectorySize(_spotifyBrowserCacheLocation, false) +
                 GetDirectorySize(_spotifyDataCacheLocation, false);
             labelDeletedCacheSize.Text = $"Deleted cache size: { ReadableBytes(deletedCacheSize) }";
         }
@@ -84,27 +84,28 @@ namespace SpotifyDeleteCache
         {
             // Check if any cache folder exists
             bool spotifyBrowserCacheFolderExists = Directory.Exists(_spotifyBrowserCacheLocation);
-            bool spotifyDataCacheFolderExists    = Directory.Exists(_spotifyDataCacheLocation);
+            bool spotifyDataCacheFolderExists = Directory.Exists(_spotifyDataCacheLocation);
 
             // Update textboxes
             textBoxBrowserCacheLocation.Text = _spotifyBrowserCacheLocation;
-            textBoxDataCacheLocation.Text    = _spotifyDataCacheLocation;
-            labelTotalCacheSize.Text         = "Total cache size: 0.0 B";
-            labelDeletedCacheSize.Text       = "Deleted cache size: 0.0 B";
+            textBoxDataCacheLocation.Text = _spotifyDataCacheLocation;
+            labelTotalCacheSize.Text = "Total cache size: 0.0 B";
+            labelDeletedCacheSize.Text = "Deleted cache size: 0.0 B";
 
             // Toggle elements
             buttonOpenBrowserCacheFolder.Enabled = spotifyBrowserCacheFolderExists;
-            buttonOpenDataCacheFolder.Enabled    = spotifyDataCacheFolderExists;
-            dateTimePickerDirectoryAge.Enabled   = spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
-            buttonDeleteCache.Enabled            = spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
+            buttonOpenDataCacheFolder.Enabled = spotifyDataCacheFolderExists;
+            dateTimePickerDirectoryAge.Enabled = spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
+            buttonDeleteCache.Enabled = spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
 
             return spotifyBrowserCacheFolderExists || spotifyDataCacheFolderExists;
         }
 
         private long GetDirectorySize(string path, bool computeTotalSize = true)
         {
-            long size = 0;
+            long directorySize = 0L;
 
+            // Compute size of all files in that directory
             if (computeTotalSize)
             {
                 try
@@ -115,7 +116,7 @@ namespace SpotifyDeleteCache
                         string[] filenames = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
 
                         foreach (string fileName in filenames)
-                            size += new FileInfo(fileName).Length;
+                            directorySize += new FileInfo(fileName).Length;
                     }
                 }
                 catch
@@ -123,21 +124,22 @@ namespace SpotifyDeleteCache
                     // Nothing to do here
                 }
             }
+            // Only compute size of files to delete 
             else
             {
                 if (path == _spotifyBrowserCacheLocation)
                 {
                     foreach (string fileName in _cacheFilesToDelete)
-                        size += new FileInfo(fileName).Length;
+                        directorySize += new FileInfo(fileName).Length;
                 }
                 else
                 {
                     foreach (string directory in _cacheDirectoriesToDelete)
-                        size += GetDirectorySize(directory);
+                        directorySize += GetDirectorySize(directory);
                 }
             }
 
-            return size;
+            return directorySize;
         }
 
         private string[] GetCacheFilesToDelete()
@@ -184,6 +186,18 @@ namespace SpotifyDeleteCache
             return oldCacheDirectories;
         }
 
+        private void OpenFolder(string path)
+        {
+            try
+            {
+                Process.Start(path);
+            }
+            catch
+            {
+                MessageBox.Show("The Spofify cache folder no longer exists!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         private string ReadableBytes(long bytes)
         {
             // Convert bytes to a readable format
@@ -194,7 +208,7 @@ namespace SpotifyDeleteCache
             return (bytes / Math.Pow(1024, i)).ToString("N2") + " " + sizes[(int)i];
         }
 
-        private void UpdateCacheSize(bool computeTotalSize = false)
+        private void UpdateCacheSize(bool computeTotalSize = true)
         {
             _cacheFilesToDelete = GetCacheFilesToDelete();
             _cacheDirectoriesToDelete = GetCacheDirectoriesToDelete();
@@ -212,32 +226,18 @@ namespace SpotifyDeleteCache
         private void DateTimePickerDirectoryAge_ValueChanged(object sender, EventArgs e)
         {
             _hideWarnings = true;
-            UpdateCacheSize(true);
+            UpdateCacheSize();
             _hideWarnings = false;
         }
 
         private void ButtonOpenBrowserCacheFolder_Click(object sender, EventArgs e)
         {
-            try
-            {
-                Process.Start(_spotifyBrowserCacheLocation);
-            }
-            catch
-            {
-                MessageBox.Show("The Spofify cache folder no longer exists!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            OpenFolder(_spotifyBrowserCacheLocation);
         }
 
         private void ButtonOpenDataCacheFolder_Click(object sender, EventArgs e)
         {
-            try
-            {
-                Process.Start(_spotifyDataCacheLocation);
-            }
-            catch
-            {
-                MessageBox.Show("The Spofify cache folder no longer exists!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            OpenFolder(_spotifyDataCacheLocation);
         }
 
         private void ButtonReportBug_Click(object sender, EventArgs e)
@@ -250,7 +250,7 @@ namespace SpotifyDeleteCache
             _hideWarnings = true;
 
             if (FindSpotifyCacheLocation())
-                UpdateCacheSize(true);
+                UpdateCacheSize();
             else
                 MessageBox.Show("The Spofify cache folder wasn't found!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
@@ -260,7 +260,7 @@ namespace SpotifyDeleteCache
         private void ButtonDeleteCache_Click(object sender, EventArgs e)
         {
             bool areDirectoriesDeleted = DeleteCacheDirectories();
-            UpdateCacheSize(true);
+            UpdateCacheSize();
 
             string text = areDirectoriesDeleted ? "The Spofify cache has been deleted!" :
                     "The Spofify cache has been deleted, but some folder couldn't be deleted.";
